@@ -1,0 +1,13 @@
+--2017-05-09 14:52:32--  http://10.0.0.1/
+Connecting to 10.0.0.1:80... failed: Connection timed out.
+Retrying.
+
+--2017-05-09 14:54:40--  (try: 2)  http://10.0.0.1/
+Connecting to 10.0.0.1:80... failed: Connection timed out.
+Retrying.
+
+--2017-05-09 14:56:50--  (try: 3)  http://10.0.0.1/
+Connecting to 10.0.0.1:80... failed: Network is unreachable.
+--2017-05-09 14:56:50--  http://80/
+Resolving 80 (80)... 0.0.0.80
+Connecting to 80 (80)|0.0.0.80|:80... failed: Network is unreachable.
