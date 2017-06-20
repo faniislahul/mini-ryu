@@ -127,6 +127,7 @@ class RRLB(app_manager.RyuApp):
                 in_port = dpid,
                 eth_type=0x800,
                 ip_proto=6,
+                tcp_dst =80,
                 ipv4_dst='10.0.0.1',
                 eth_dst='00:00:00:00:00:01'
 
