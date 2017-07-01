@@ -50,25 +50,25 @@ class nuc(app_manager.RyuApp):
             conn.request('POST','/control',params,headers)
             start = time.time()
             response = conn.getresponse()
-            if(response.status == 200):
                 data = json.load(response.read())
+                if(response.status == 200):
                 end = time.time()
                 rtt = end-start
                 clc = data['clc']
-                spm = (data['cpu']+data['mem']+(rtt*self.adj))/3
+                spm = rtt
                 line = [self.seq,mem,cpu,rtt,clc, spm]
                 self.writer.writerow(line)
                 self.spms[ip] = spm
                 self.seq = self.seq+self.interval
             else:
-                self.spms[ip] = 100
-                line = [self.seq,100,100,100,0,100]
+                self.spms[ip] = self.interval
+                line = [self.seq,100,100,100,0,self.interval]
                 self.writer.writerow(line)
                 self.seq = self.seq+self.interval
                 print "IP = "+ip+" BAD REQUEST"
         except:
-                self.spms[ip] = 100
-                line = [self.seq,100,100,100,0,100]
+                self.spms[ip] = self.interval
+                line = [self.seq,100,100,100,0,self.interval]
                 self.writer.writerow(line)
                 self.seq = self.seq+self.interval
                 print "IP = "+ip+" REQUEST TIMEOUT"
@@ -92,7 +92,7 @@ class nuc(app_manager.RyuApp):
                 if self.spms[ip] <= min_ :
                     min_ = self.spms[ip]
                     mac_ = self.mac_ip[ip]
-            if min_ == 100:
+            if min_ == self.interval:
                 mac_ = '00:00:00:00:00:0'+str(random.randrange(1,4))
 
             #print 'mac is ',mac_

@@ -25,6 +25,7 @@ class nuc(app_manager.RyuApp):
     interval = 2
     adj = 100/interval
     seq = 0
+    inc = 1
     res = open("result/control_side.csv", "wb")
     writer = csv.writer(res, delimiter=',')
 
@@ -77,6 +78,7 @@ class nuc(app_manager.RyuApp):
     #this method creates 3 threat that check each server status with interval
     def ctr_check(self, datapath):
         servers = {"10.0.0.1","10.0.0.2","10.0.0.3"}
+        global inc
         global spms
         global interval
         while True:
@@ -85,16 +87,9 @@ class nuc(app_manager.RyuApp):
                 z.start()
 
             time.sleep(self.interval)
-            print self.spms.items()
-            min_ = 1000
-            mac_ = ""
-            for ip in servers:
-                if self.spms[ip] <= min_ :
-                    min_ = self.spms[ip]
-                    mac_ = self.mac_ip[ip]
-            if min_ == 100:
-                mac_ = '00:00:00:00:00:0'+str(random.randrange(1,4))
-
+            self.inc= (inc%3)+1
+            mac_ = '00:00:00:00:00:0'+str(self.inc)
+            print "redirected to "+str(self.inc)
             #print 'mac is ',mac_
             self.add_lb_flow(datapath, mac_)
 

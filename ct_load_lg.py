@@ -6,7 +6,7 @@ ctr = 0
 ok = 0
 #fail_ = 0
 n = ''
-print "Generic test input clients/second"
+print "Server stress test large, input clients/second"
 n = raw_input("client : ")
 
 def single_c():
@@ -15,7 +15,7 @@ def single_c():
     conn = httplib.HTTPConnection(url)
     #conn.settimeout(1)
     try:
-        conn.request('GET','/generic')
+        conn.request('GET','/load/lg')
         response = conn.getresponse()
         if(response.status == 200):
             ok = ok + 1
