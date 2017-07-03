@@ -59,18 +59,18 @@ class nuc(app_manager.RyuApp):
                 line = [self.seq,mem,cpu,rtt,clc, spm]
                 self.writer.writerow(line)
                 self.spms[ip] = spm
-                self.seq = self.seq+self.interval
+
             else:
                 self.spms[ip] = 100
                 line = [self.seq,100,100,100,0,100]
                 self.writer.writerow(line)
-                self.seq = self.seq+self.interval
+
                 print "IP = "+ip+" BAD REQUEST"
         except:
                 self.spms[ip] = 100
                 line = [self.seq,100,100,100,0,100]
                 self.writer.writerow(line)
-                self.seq = self.seq+self.interval
+
                 print "IP = "+ip+" REQUEST TIMEOUT"
 
 
@@ -85,6 +85,7 @@ class nuc(app_manager.RyuApp):
                 z.start()
 
             time.sleep(self.interval)
+            self.seq = self.seq+self.interval
             print self.spms.items()
             min_ = 1000
             mac_ = ""
