@@ -1,3 +1,4 @@
+
 from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
@@ -31,7 +32,7 @@ class nuc(app_manager.RyuApp):
 
     spms = {'10.0.0.1' : 0,'10.0.0.2' : 0,'10.0.0.3' : 0}
     mac_ip = {'10.0.0.1' : '00:00:00:00:00:01' , '10.0.0.2' : '00:00:00:00:00:02','10.0.0.3' : '00:00:00:00:00:03'}
-    mac_port = {'00:00:00:00:00:01' : 1, '00:00:00:00:00:02' : 2, '00:00:00:00:00:03' : 3}
+    mac_port = {'00:00:00:00:00:01' : 1, '00:00:00:00:00:02' : 1, '00:00:00:00:00:03' : 1}
     def __init__(self, *args, **kwargs):
         super(nuc, self).__init__(*args, **kwargs)
 
@@ -43,7 +44,6 @@ class nuc(app_manager.RyuApp):
         global interval
         global adj
         global writer
-
         conn = httplib.HTTPConnection(ip+':80', timeout=self.interval)
         try:
             params = urllib.urlencode({'seq': self.seq})
@@ -52,24 +52,26 @@ class nuc(app_manager.RyuApp):
             start = time.time()
             response = conn.getresponse()
             if(response.status == 200):
-                data = json.load(response.read())
+                data = json.load(response)
+    #            print data
                 end = time.time()
                 rtt = end-start
                 clc = data['clc']
                 spm = (data['cpu']+data['mem']+(rtt*self.adj))/3
-                line = [self.seq,mem,cpu,rtt,clc, spm]
+                line = [ip,self.seq,data['mem'],data['cpu'],rtt,clc, spm]
                 self.writer.writerow(line)
                 self.spms[ip] = spm
 
             else:
                 self.spms[ip] = 100
-                line = [self.seq,100,100,100,0,100]
+                line = [ip,self.seq,100,100,100,0,100]
                 self.writer.writerow(line)
 
                 print "IP = "+ip+" BAD REQUEST"
+
         except:
                 self.spms[ip] = 100
-                line = [self.seq,100,100,100,0,100]
+                line = [ip,self.seq,100,100,100,0,100]
                 self.writer.writerow(line)
 
                 print "IP = "+ip+" REQUEST TIMEOUT"
@@ -78,9 +80,9 @@ class nuc(app_manager.RyuApp):
     #this method creates 3 threat that check each server status with interval
     def ctr_check(self, datapath):
         servers = {"10.0.0.1","10.0.0.2","10.0.0.3"}
-        global inc
         global spms
         global interval
+        global inc
         while True:
             for ip in servers:
                 z = Thread(target=self.server_check, args=(ip,))
@@ -88,33 +90,44 @@ class nuc(app_manager.RyuApp):
 
             time.sleep(self.interval)
             self.seq = self.seq+self.interval
-            self.inc= (inc%3)+1
+            print self.spms.items()
+            min_ = 1000
+            mac_ = ""
+            ip_ = ""
+            #for ip in servers:
+            #    if self.spms[ip] <= min_ :
+            #        min_ = self.spms[ip]
+            #        mac_ = self.mac_ip[ip]
+            #        ip_ = ip
+            #if min_ == 100:
+            self.inc = (self.inc%3)+1
             mac_ = '00:00:00:00:00:0'+str(self.inc)
-            print "redirected to "+str(self.inc)
+            ip_= '10.0.0.'+str(self.inc)
+
             #print 'mac is ',mac_
-            self.add_lb_flow(datapath, mac_)
+            self.add_lb_flow(datapath, mac_, ip_)
 
             print "----------------------------------------------"
 
     #this method do the openflow protocol to create new flows
-    def add_lb_flow(self, datapath, mac):
+    def add_lb_flow(self, datapath, mac, ip):
         global inc
 
         match = datapath.ofproto_parser.OFPMatch(
-        in_port = 4,
+        in_port = 2,
         eth_type=0x800,
         ip_proto=6,
         ipv4_dst='10.0.0.1',
         eth_dst='00:00:00:00:00:01'
         )
-        ip = "10.0.0."+str(self.mac_port[mac])
-        eth = "00:00:00:00:00:0"+str(self.mac_port[mac])
+#        ip = "10.0.0."+str(self.mac_port[mac])
+#        eth = "00:00:00:00:00:0"+str(self.mac_port[mac])
         actions = [  ofparser.OFPActionSetField(ipv4_dst=ip),
-                    ofparser.OFPActionSetField(eth_dst=eth),
+                    ofparser.OFPActionSetField(eth_dst=mac),
                     ofparser.OFPActionSetField(tcp_dst=80),
-                    ofparser.OFPActionOutput(port=self.mac_port[mac])
+                    ofparser.OFPActionOutput(port=1)
                     ]
-        print "redirected to port ",self.mac_port[mac]
+        print "redirected to ",mac
 
         inst = [ofparser.OFPInstructionActions(
                 ofproto.OFPIT_APPLY_ACTIONS, actions)]
@@ -157,20 +170,20 @@ class nuc(app_manager.RyuApp):
             ip = "10.0.0."+str(i)
             eth = "00:00:00:00:00:0"+str(i)
 
-            match = ofparser.OFPMatch(in_port=i, eth_type=0x800, ip_proto=6,tcp_src = 80, ipv4_src=ip,eth_src=eth,ipv4_dst='10.0.0.4')
+            match = ofparser.OFPMatch(in_port=1, eth_type=0x800, ip_proto=6,tcp_src = 80, ipv4_src=ip,eth_src=eth,ipv4_dst='10.0.0.4')
             actions = [ofparser.OFPActionSetField(ipv4_src="10.0.0.1"),
                        ofparser.OFPActionSetField(eth_src="00:00:00:00:00:01"),
                        ofparser.OFPActionSetField(tcp_src=80),
-                       ofparser.OFPActionOutput(port=4, max_len=0)]
+                       ofparser.OFPActionOutput(port=2, max_len=0)]
             self.add_flow1(datapath=datapath, table_id=0, priority=100,
                     match=match, actions=actions)
 
         # reverse ARP path flow
 
-            match_ = ofparser.OFPMatch(in_port=i, eth_type=ether_types.ETH_TYPE_ARP, ipv4_src=ip,eth_src=eth, eth_dst="00:00:00:00:00:04")
+            match_ = ofparser.OFPMatch(in_port=1, eth_type=ether_types.ETH_TYPE_ARP, ipv4_src=ip,eth_src=eth, eth_dst="00:00:00:00:00:04")
             actions_ = [ofparser.OFPActionSetField(ipv4_src="10.0.0.1"),
                        ofparser.OFPActionSetField(eth_src="00:00:00:00:00:01"),
-                       ofparser.OFPActionOutput(port=4, max_len=0)]
+                       ofparser.OFPActionOutput(port=2, max_len=0)]
             self.add_flow1(datapath=datapath, table_id=0, priority=100,
                     match=match_, actions=actions_)
 
@@ -185,7 +198,7 @@ class nuc(app_manager.RyuApp):
         pkt = packet.Packet(msg.data)
 
         #this part create path between controller and servers
-        if msg.match['in_port'] != 4:
+        if msg.match['in_port'] != 2:
             if(pkt.get_protocol(ethernet.ethernet)):
     #            if(pkt.get_protocol(ipv4.ipv4)):
                 _eth = pkt.get_protocol(ethernet.ethernet)
