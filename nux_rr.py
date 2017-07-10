@@ -23,7 +23,7 @@ import csv
 
 class nuc(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto.OFP_VERSION]
-    interval = 2
+    interval = 1
     adj = 100/interval
     seq = 0
     inc = 1
