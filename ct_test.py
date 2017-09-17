@@ -1,7 +1,7 @@
 import thread
 import httplib, urllib, random, time
 
-url = '10.0.0.1:80'
+url = '127.0.0.1:80'
 ctr = 0
 ok = 0
 rt = 0
